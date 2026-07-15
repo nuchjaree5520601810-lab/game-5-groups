@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตะลุยโลกอาหารหลัก 5 หมู่ (150 ช่อง)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap');
+
+        :root {
+            --primary: #4CAF50; --secondary: #FF9800; --danger: #f44336;
+            --info: #2196F3; --wood: #8B5A2B; --wood-light: #CD853F;
+        }
+
+        * { box-sizing: border-box; font-family: 'Mali', cursive; user-select: none; }
+
+        body {
+            margin: 0; padding: 10px; 
+            background: linear-gradient(to bottom, #87CEEB 0%, #a8e063 50%, #56ab2f 100%);
+            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* --- Setup Screen --- */
+        #setup-screen {
+            background: rgba(255,255,255,0.95); padding: 30px; border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 4px solid var(--wood);
+            text-align: center; max-width: 500px; width: 100%; margin-top: 50px; z-index: 100;
+        }
+        .player-input { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; justify-content: center; }
+        .player-input input[type="text"] { padding: 10px; border: 2px solid #ddd; border-radius: 8px; flex: 1; font-size: 16px; font-family: 'Mali', cursive; }
+        .player-input input[type="color"] { width: 45px; height: 45px; border: 2px solid #ccc; cursor: pointer; border-radius: 8px; padding: 2px; }
+        button {
+            padding: 12px 24px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; font-family: 'Mali', cursive;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        button:disabled { filter: grayscale(1); cursor: not-allowed; transform: none; box-shadow: none;}
+        .btn-start { background: var(--secondary); color: white; margin-top: 20px; width: 100%; border: 3px solid #E65100; font-size: 22px;}
+
+        /* --- Main Game UI --- */
+        #game-screen { display: none; width: 100%; max-width: 1400px; gap: 15px; flex-wrap: wrap; justify-content: center; align-items: flex-start; margin-top: 10px;}
+        
+        .wood-panel {
+            background: var(--wood-light); border: 5px solid var(--wood); border-radius: 15px;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3), inset 0 0 20px rgba(139, 69, 19, 0.5);
+            padding: 15px; color: white; text-shadow: 1px 1px 2px black;
+        }
+
+        .side-panels {
+            display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 300px;
+            position: sticky; top: 15px;
+        }
+
+        #scoreboard { width: 100%; height: fit-content; }
+        .player-score {
+            display: flex; justify-content: space-between; padding: 10px; border-bottom: 2px dashed rgba(255,255,255,0.4);
+            align-items: center; transition: background 0.3s; border-radius: 10px; font-size: 15px;
+        }
+        .active-player-score { background: rgba(255,255,255,0.2); box-shadow: inset 0 0 10px rgba(255,255,255,0.5); }
+        .color-dot { width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-right: 10px; border: 2px solid white; box-shadow: 1px 1px 3px rgba(0,0,0,0.5);}
+
+        .controls { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        #dice {
+            width: 80px; height: 80px; background: white; border: 4px solid #333; border-radius: 15px;
+            display: flex; align-items: center; justify-content: center; font-size: 45px; font-weight: bold;
+            box-shadow: 0 8px 0 #999; transition: transform 0.1s; color: #333; text-shadow: none; margin: 10px 0;
+        }
+        .rolling { animation: roll 0.4s infinite linear; }
+        @keyframes roll { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+        .btn-roll { background: #D32F2F; color: white; font-size: 22px; padding: 15px 30px; border-radius: 15px; border: 4px solid #B71C1C; box-shadow: 0 6px 0 #7F0000; width: 100%;}
+        .btn-roll:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0 0 #7F0000; }
+
+        /* Board Area */
+        .main-content { flex: 1; min-width: 320px; max-width: 900px; display: flex; flex-direction: column; align-items: center;}
+        
+        .board-header {
+            background: #FFF3E0; border-radius: 20px; width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            text-align: center; padding: 15px; border: 4px solid var(--wood-light);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.2); margin-bottom: 20px;
+        }
+        .ribbon {
+            background: #D32F2F; color: white; padding: 8px 30px; font-size: clamp(16px, 3vw, 24px);
+            border-radius: 5px; font-weight: bold; text-shadow: 1px 1px 0 #000; margin-bottom: 15px;
+            box-shadow: 0 4px 0 #B71C1C;
+        }
+        .food-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; }
+        .food-box { background: rgba(255,255,255,0.7); border-radius: 10px; padding: 5px 15px; border: 2px dashed #BCAAA4; text-align: center;}
+        .food-box span { font-size: 24px; }
+        .food-box b { color: #5D4037; font-size: 14px; display: block; }
+
+        .board {
+            display: grid; grid-template-columns: repeat(10, 1fr); 
+            gap: 4px; padding: 10px; width: 100%; position: relative;
+            background: rgba(255,255,255,0.3); border-radius: 15px; border: 4px solid #388E3C;
+        }
+
+        .cell {
+            background: white; border-radius: 50%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; 
+            box-shadow: 0 4px 5px rgba(0,0,0,0.3), inset 0 -3px 0 rgba(0,0,0,0.1); 
+            border: 2px solid #333; position: relative; z-index: 5;
+            transition: transform 0.2s; aspect-ratio: 1/1; 
+        }
+        .cell:hover { transform: scale(1.15); z-index: 10; }
+        
+        .cell.start { background: #FFD54F; border-color: #F57F17; }
+        .cell.finish { background: #FFD54F; border-color: #F57F17; }
+        .cell.type-Q { background: #E1F5FE; border-color: #0288D1; }
+        .cell.type-B { background: #FFF9C4; border-color: #FBC02D; }
+        .cell.type-C { background: #F3E5F5; border-color: #7B1FA2; }
+        .cell.type-M { background: #E8F5E9; border-color: #388E3C; }
+        .cell.type-L { background: #FFECB3; border-color: #FFA000; }
+        .cell.type-P { background: #FFEBEE; border-color: #D32F2F; }
+        
+        .cell-pic { font-size: clamp(14px, 2.5vw, 28px); filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2)); }
+        .cell-num { 
+            position: absolute; top: -2px; left: -2px; background: #333; color: white; 
+            border-radius: 50%; width: 18px; height: 18px; font-size: 9px; 
+            display: flex; align-items: center; justify-content: center; border: 1px solid white; font-weight: bold;
+        }
+
+        .header-bar { width: 100%; display: flex; justify-content: flex-end; padding: 10px; position: absolute; top: 0; right: 0; z-index: 50;}
+        .btn-sound { background: white; color: #333; padding: 8px 15px; font-size: 16px; border: 2px solid #333; border-radius: 20px; font-weight: bold; cursor: pointer;}
+
+        .piece {
+            width: clamp(14px, 2vw, 22px); height: clamp(18px, 2.5vw, 28px); position: absolute; 
+            background: currentColor; border: 2px solid white; border-radius: 50% 50% 20% 20%;
+            box-shadow: 0 3px 4px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(0,0,0,0.3); 
+            transition: all 0.3s ease-in-out; z-index: 20;
+            display: flex; justify-content: center;
+        }
+        .piece::after {
+            content: ''; position: absolute; bottom: -3px; width: 120%; height: 5px; 
+            background: currentColor; border: 1px solid white; border-radius: 3px;
+        }
+
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: white; padding: 25px; border-radius: 25px; text-align: center; max-width: 450px; width: 95%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 5px solid #333; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-box.show { transform: scale(1); }
+        .modal-title { font-size: 24px; margin-bottom: 10px; font-weight: bold; text-shadow: 1px 1px 0px #eee;}
+        .modal-desc { font-size: 16px; margin-bottom: 15px; color: #444; line-height: 1.4;}
+        .choices-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 15px; }
+        .btn-choice { background: #f5f5f5; color: #333; padding: 12px; border-radius: 10px; font-size: 15px; border: 2px solid #ddd; font-weight: 600; text-align: left;}
+        .btn-choice:hover { background: #e0f7fa; border-color: #00bcd4; transform: scale(1.01);}
+        .btn-action { background: var(--primary); color: white; width: 100%; padding: 15px; font-size: 20px; border-radius: 15px; border: 3px solid #2E7D32; box-shadow: 0 4px 0 #1B5E20;}
+        .btn-action:active { transform: translateY(4px); box-shadow: none; }
+
+        .confetti { position: fixed; width: 12px; height: 12px; z-index: 9999; top: -10px; animation: fall linear forwards; border-radius: 2px;}
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+        
+        .floating-text {
+            position: absolute; font-size: 24px; font-weight: bold; z-index: 50; pointer-events: none;
+            animation: floatUp 1.2s ease-out forwards; text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff;
+        }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.5); opacity: 0; } }
+
+        @media (max-width: 768px) {
+            .side-panels { max-width: 100%; flex-direction: row; position: relative; top: 0;}
+            #scoreboard { flex: 1; }
+            .controls { flex: 1; }
+            .controls h2 { display: none; }
+            #game-screen { flex-direction: column; align-items: center; }
+            .cell-num { width: 14px; height: 14px; font-size: 7px; top: -1px; left: -1px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <button class="btn-sound" id="btn-sound" onclick="toggleSound()">🔊 เปิดเสียง</button>
+    </div>
+
+    <!-- หน้า Setup เริ่มเกม -->
+    <div id="setup-screen">
+        <h1 style="color: #2E7D32; font-size: 32px; margin-bottom: 10px;">ตะลุยโลกอาหารหลัก 5 หมู่ 🥗</h1>
+        <p style="color: #555; font-size: 18px;">เลือกจำนวนผู้เล่น (1-4 คน)</p>
+        
+        <select id="player-count" style="padding: 10px; font-size: 18px; margin-bottom: 20px; border-radius: 10px; border: 2px solid #aaa;" onchange="updatePlayerInputs()">
+            <option value="1">1 คน</option>
+            <option value="2" selected>2 คน</option>
+            <option value="3">3 คน</option>
+            <option value="4">4 คน</option>
+        </select>
+        
+        <!-- กล่องสำหรับใส่ชื่อและสี (สำคัญมาก ห้ามลบ div นี้) -->
+        <div id="player-inputs"></div>
+        
+        <button class="btn-start" onclick="startGame()">🚀 เริ่มเล่นเกม!</button>
+    </div>
+
+    <!-- หน้ากระดานเกมหลัก -->
+    <div id="game-screen">
+        
+        <div class="side-panels">
+            <div class="wood-panel" id="scoreboard">
+                <h2 style="text-align: center; margin-top:0; font-size: 20px;">🏆 Scoreboard</h2>
+                <div id="players-list"></div>
+            </div>
+
+            <div class="wood-panel controls">
+                <h2 id="current-turn-display" style="margin:0; font-size: 16px; text-shadow:none; color: white;">ตากระโดดของ: </h2>
+                <div id="dice">🎲</div>
+                <button class="btn-roll" id="btn-roll" onclick="rollDice()">ทอยเต๋า</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="board-header">
+                <div class="ribbon">กระดานงูไต่ 150 ช่อง อาหาร 5 หมู่</div>
+                <div class="food-grid">
+                    <div class="food-box"><span>🍗</span><b>โปรตีน</b></div>
+                    <div class="food-box"><span>🍞</span><b>คาร์บ</b></div>
+                    <div class="food-box"><span>🥦</span><b>ผัก</b></div>
+                    <div class="food-box"><span>🍎</span><b>ผลไม้</b></div>
+                    <div class="food-box"><span>🥑</span><b>ไขมันดี</b></div>
+                </div>
+            </div>
+
+            <div class="board" id="board">
+                <!-- Javascript will inject 150 cells here -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Popup อัตโนมัติ -->
+    <div id="modal-overlay">
+        <div class="modal-box" id="modal-box">
+            <div id="modal-icon" style="font-size: 50px; margin-bottom: 0px; text-shadow: 2px 2px 5px rgba(0,0,0,0.2);">❓</div>
+            <div class="modal-title" id="modal-title">หัวข้อ</div>
+            <div class="modal-desc" id="modal-desc">รายละเอียด</div>
+            <div id="modal-dynamic-content"></div>
+            <button class="btn-action" id="modal-btn-close" style="display:none;" onclick="closeModal()">ตกลง</button>
+        </div>
+    </div>
+
+<script>
+    let actx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+        try {
+            if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+            if (actx.state === 'suspended') actx.resume();
+        } catch(e) { console.warn("Audio skipped", e); }
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊 เปิดเสียง' : '🔇 ปิดเสียง';
+    }
+
+    function playTone(freq, type, duration, vol=0.1) {
+        if (!soundEnabled || !actx) return;
+        try {
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.type = type; osc.frequency.value = freq;
+            osc.connect(gain); gain.connect(actx.destination);
+            osc.start();
+            gain.gain.setValueAtTime(vol, actx.currentTime);
+            gain.exponentialRampToValueAtTime(0.00001, actx.currentTime + duration);
+            osc.stop(actx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    const sounds = {
+        dice: () => { for(let i=0; i<4; i++) setTimeout(() => playTone(300 + Math.random()*500, 'square', 0.05), i*80); },
+        move: () => playTone(450, 'sine', 0.1),
+        correct: () => { playTone(523.25, 'triangle', 0.1); setTimeout(()=>playTone(659.25, 'triangle', 0.1), 100); setTimeout(()=>playTone(783.99, 'triangle', 0.2), 200); },
+        wrong: () => { playTone(250, 'sawtooth', 0.2); setTimeout(()=>playTone(200, 'sawtooth', 0.3), 200); },
+        bonus: () => { playTone(600, 'sine', 0.1); setTimeout(()=>playTone(880, 'sine', 0.3), 100); },
+        penalty: () => playTone(150, 'square', 0.4),
+        win: () => { sounds.correct(); setTimeout(sounds.bonus, 300); setTimeout(sounds.correct, 600); }
+    };
+
+    const colors = ['#f44336', '#2196F3', '#4CAF50', '#FF9800'];
+    let players = [];
+    let currentPlayerIndex = 0;
+    let isBusy = false; 
+    let boardCells = []; 
+    const TOTAL_SQUARES = 150; 
+    
+    // พูลคำถาม 60 ข้อ
+    const questionPool = [
+        { q: "เนื้อสัตว์ ไข่ นม จัดอยู่ในอาหารหมู่ใด?", c: ["โปรตีน", "คาร์โบไฮเดรต", "เกลือแร่", "วิตามิน"], a: 0 },
+        { q: "อาหารหมู่ที่ 1 (โปรตีน) มีหน้าที่สำคัญที่สุดคืออะไร?", c: ["ให้พลังงานสูง", "ช่วยระบบขับถ่าย", "ซ่อมแซมส่วนที่สึกหรอ", "บำรุงสายตา"], a: 2 },
+        { q: "ข้อใดคือแหล่งโปรตีนที่ได้จากพืช?", c: ["นมวัว", "ถั่วเหลือง", "เนยแท้", "ปลาทู"], a: 1 },
+        { q: "หากมีบาดแผล ร่างกายต้องการอาหารหมู่ใดมากที่สุดเพื่อสมานแผล?", c: ["คาร์โบไฮเดรต", "วิตามิน", "โปรตีน", "ไขมัน"], a: 2 },
+        { q: "ทำไมวัยเด็กจึงต้องการโปรตีนสูง?", c: ["เพื่อสะสมไขมัน", "เพื่อการเจริญเติบโต", "เพื่อทดแทนพลังงาน", "เพื่อให้หลับสบาย"], a: 1 },
+        { q: "นมเปรี้ยวและโยเกิร์ต จัดเป็นอาหารหลักหมู่ใด?", c: ["โปรตีน", "คาร์โบไฮเดรต", "ไขมัน", "เกลือแร่"], a: 0 },
+        { q: "ข้อใดคือแหล่งโปรตีนชั้นดีที่มีราคาถูกและหาซื้อง่ายที่สุด?", c: ["เนื้อวัววากิว", "ปลาแซลมอน", "ไข่ไก่", "ชีส"], a: 2 },
+        { q: "โปรตีนช่วยสร้างสิ่งใดในร่างกายมนุษย์?", c: ["ไขมันหน้าท้อง", "กล้ามเนื้อและภูมิคุ้มกัน", "เส้นเลือด", "กระดูกอย่างเดียว"], a: 1 },
+        { q: "ข้าว แป้ง เผือก มัน น้ำตาล จัดอยู่ในอาหารหมู่ใด?", c: ["หมู่ 1 โปรตีน", "หมู่ 2 คาร์โบไฮเดรต", "หมู่ 3 เกลือแร่", "หมู่ 4 วิตามิน"], a: 1 },
+        { q: "อาหารหมู่ที่ 2 (คาร์โบไฮเดรต) ให้ประโยชน์หลักเรื่องใด?", c: ["ให้พลังงานแก่ร่างกาย", "บำรุงผิวพรรณ", "สร้างกล้ามเนื้อ", "ช่วยขับถ่าย"], a: 0 },
+        { q: "หากไม่ได้ทานอาหารหมู่ที่ 2 จะเกิดอาการใดชัดเจนที่สุด?", c: ["ปวดหัว", "สายตาสั้น", "ไม่มีแรง อ่อนเพลีย", "ท้องผูก"], a: 2 },
+        { q: "ข้าวชนิดใดมีวิตามินและกากใยสูงกว่าข้าวขาว?", c: ["ข้าวเหนียว", "ข้าวกล้อง", "ข้าวญี่ปุ่น", "ข้าวหอมมะลิเก่า"], a: 1 },
+        { q: "ขนมปังโฮลวีต จัดอยู่ในอาหารหมู่ใด?", c: ["โปรตีน", "คาร์โบไฮเดรต", "วิตามิน", "ไขมันดี"], a: 1 },
+        { q: "ข้อใดจัดเป็นคาร์โบไฮเดรตทั้งหมด?", c: ["ข้าวโพด, มันเทศ, ข้าวเหนียว", "เนื้อหมู, ไข่, นม", "แตงโม, ส้ม, กล้วย", "น้ำมันหมู, เนย, กะทิ"], a: 0 },
+        { q: "อาหารหมู่ใดที่เมื่อทานมากเกินไป ร่างกายจะเปลี่ยนเป็นไขมันสะสม?", c: ["หมู่ 3 (ผัก)", "หมู่ 4 (ผลไม้)", "หมู่ 2 (คาร์โบไฮเดรต)", "หมู่ 1 (โปรตีน)"], a: 2 },
+        { q: "น้ำตาลกลูโคส ร่างกายได้มาจากการย่อยสลายอาหารหมู่ใด?", c: ["โปรตีน", "คาร์โบไฮเดรต", "ไขมัน", "เกลือแร่"], a: 1 },
+        { q: "อาหารหมู่ที่ 3 คืออะไร?", c: ["เกลือแร่ (จากผัก)", "วิตามิน (จากผลไม้)", "ไขมัน (จากพืช)", "คาร์โบไฮเดรต"], a: 0 },
+        { q: "ผักใบเขียวให้สารอาหารประเภทใดมากที่สุด?", c: ["ไขมัน", "โปรตีน", "เกลือแร่และกากใย", "คาร์โบไฮเดรต"], a: 2 },
+        { q: "จุดเด่นของอาหารหมู่ที่ 3 (ผัก) คืออะไร?", c: ["ให้พลังงานสูงมาก", "ช่วยให้ร่างกายขับถ่ายสะดวก", "สร้างกล้ามเนื้อ", "ให้ความอบอุ่น"], a: 1 },
+        { q: "หากท้องผูกเป็นประจำ ควรรับประทานอาหารหมู่ใดเพิ่มขึ้น?", c: ["หมู่ 1 และ 2", "หมู่ 2 และ 5", "หมู่ 3 และ 4", "หมู่ 1 และ 5"], a: 2 },
+        { q: "ผักสีส้มและเหลือง เช่น แครอท ฟักทอง บำรุงสิ่งใดเป็นพิเศษ?", c: ["สายตา (มีวิตามินเอ)", "กระดูก", "กล้ามเนื้อ", "สมอง"], a: 0 },
+        { q: "แร่ธาตุแคลเซียมและฟอสฟอรัสที่พบในผักใบเขียวเข้ม ช่วยเรื่องใด?", c: ["บำรุงสายตา", "สร้างเลือด", "บำรุงกระดูกและฟัน", "ลดน้ำหนัก"], a: 2 },
+        { q: "ธาตุเหล็กพบมากในผักชนิดใด?", c: ["ผักกาดขาว", "กะหล่ำปลี", "ผักโขม ใบชะพลู", "แตงกวา"], a: 2 },
+        { q: "การทานผักสดดีกว่าผักที่ต้มจนเปื่อยอย่างไร?", c: ["เคี้ยวง่ายกว่า", "สูญเสียคุณค่าทางอาหารน้อยกว่า", "เก็บได้นานกว่า", "รสชาติหวานกว่า"], a: 1 },
+        { q: "ผลไม้ต่างๆ จัดอยู่ในอาหารหมู่ใด?", c: ["หมู่ 1", "หมู่ 2", "หมู่ 3", "หมู่ 4"], a: 3 },
+        { q: "วิตามินซีสูง ช่วยป้องกันโรคหวัด พบมากในผลไม้ชนิดใด?", c: ["ส้ม ฝรั่ง มะขามป้อม", "กล้วย แตงโม", "ทุเรียน ขนุน", "แอปเปิ้ล แก้วมังกร"], a: 0 },
+        { q: "ผลไม้ให้ประโยชน์หลักในเรื่องใด?", c: ["บำรุงผิวพรรณและเสริมภูมิคุ้มกัน", "ให้ความอบอุ่น", "ซ่อมแซมกระดูก", "เพิ่มกล้ามเนื้อ"], a: 0 },
+        { q: "ผลไม้ชนิดใดที่มีรสหวานจัด ควรทานแต่น้อย?", c: ["ฝรั่ง", "แอปเปิ้ลเขียว", "ทุเรียน", "ชมพู่"], a: 2 },
+        { q: "หากเป็นโรคเลือดออกตามไรฟัน ขาดวิตามินซี ควรทานผลไม้ใด?", c: ["ส้ม มะนาว", "มะละกอสุก", "กล้วยน้ำว้า", "แตงโม"], a: 0 },
+        { q: "กล้วยหอม อุดมไปด้วยแร่ธาตุใดที่ช่วยลดตะคริว?", c: ["เหล็ก", "แคลเซียม", "โพแทสเซียม", "สังกะสี"], a: 2 },
+        { q: "ข้อใดคือข้อแตกต่างหลักระหว่างหมู่ 3 (ผัก) และหมู่ 4 (ผลไม้)?", c: ["ผลไม้มักมีน้ำตาลธรรมชาติสูงกว่าผัก", "ผักมีวิตามินมากกว่าผลไม้", "ผลไม้ให้โปรตีนสูงกว่า", "ผักไม่มีกากใยเลย"], a: 0 },
+        { q: "การทานผลไม้แทนขนมหวานหลังมื้ออาหาร ดีอย่างไร?", c: ["อิ่มเร็วกว่า", "ได้วิตามิน กากใย และน้ำตาลน้อยกว่า", "ประหยัดเงิน", "ช่วยให้ง่วงนอน"], a: 1 },
+        { q: "เนย กะทิ น้ำมันงา จัดอยู่ในอาหารหมู่ใด?", c: ["โปรตีน", "ไขมัน (หมู่ 5)", "เกลือแร่", "คาร์โบไฮเดรต"], a: 1 },
+        { q: "อาหารหมู่ที่ 5 (ไขมัน) มีหน้าที่สำคัญอย่างไรนอกจากให้พลังงาน?", c: ["ช่วยขับถ่าย", "ซ่อมแซมกล้ามเนื้อ", "ให้ความอบอุ่นและละลายวิตามิน", "บำรุงสายตา"], a: 2 },
+        { q: "วิตามินกลุ่มใดที่ต้องอาศัย 'ไขมัน' ในการดูดซึมเข้าสู่ร่างกาย?", c: ["วิตามิน บี และ ซี", "วิตามิน เอ ดี อี เค", "วิตามินรวม", "วิตามินทุกชนิด"], a: 1 },
+        { q: "ข้อใดคือแหล่งไขมันที่ได้จากสัตว์ทั้งหมด?", c: ["น้ำมันหมู, เนยแท้, น้ำมันปลา", "กะทิ, น้ำมันปาล์ม, ถั่วเหลือง", "อะโวคาโด, น้ำมันงา", "น้ำมันดอกทานตะวัน, ชีส"], a: 0 },
+        { q: "ไขมันชนิดใดจัดเป็นไขมันดี (HDL) บำรุงหัวใจ?", c: ["น้ำมันหมู", "เนยเทียม (มาการีน)", "ไขมันทรานส์", "น้ำมันมะกอก อะโวคาโด"], a: 3 },
+        { q: "การรับประทานอาหารหมู่ 5 มากเกินไป ส่งผลเสียอย่างไร?", c: ["ขาดสารอาหาร", "เสี่ยงต่อโรคอ้วนและหลอดเลือดอุดตัน", "กระดูกพรุน", "สายตาสั้น"], a: 1 },
+        { q: "อาหารในข้อใดมีปริมาณไขมันสูงที่สุด?", c: ["ข้าวต้มหมู", "สลัดผักน้ำใส", "หมูกรอบทอด", "ปลาเผา"], a: 2 },
+        { q: "เราควรบริโภคอาหารหมู่ที่ 5 (ไขมัน) ในปริมาณเท่าใดต่อวัน?", c: ["ทานให้มากที่สุด", "ทานให้เท่ากับโปรตีน", "ทานแต่น้อย พอเหมาะ", "ไม่ต้องทานเลย"], a: 2 },
+        { q: "เมนู 'ข้าวผัดกะเพราหมูสับไข่ดาว' ขาดอาหารหมู่ใด?", c: ["โปรตีน", "คาร์โบไฮเดรต", "ไขมัน", "ผลไม้ (หมู่ 4)"], a: 3 },
+        { q: "เมนูใดต่อไปนี้ มีสารอาหารครบ 5 หมู่ใน 1 จาน?", c: ["ข้าวเหนียวหมูปิ้ง", "ก๋วยเตี๋ยวต้มยำ ตามด้วยแตงโม", "เฟรนช์ฟรายส์และน้ำอัดลม", "ขนมปังทาแยม"], a: 1 },
+        { q: "การทานอาหารครบ 5 หมู่ ส่งผลอย่างไร?", c: ["น้ำหนักลดลงทันที", "ร่างกายเจริญเติบโต แข็งแรงสมบูรณ์", "สูงขึ้น 10 ซม.", "ไม่เป็นโรคใดๆเลย"], a: 1 },
+        { q: "วัยเรียนควรเน้นทานอาหารหมู่ใดมากเป็นพิเศษ?", c: ["หมู่ 1 และ 2", "หมู่ 5", "ทานแต่ผลไม้", "ทานแต่ผัก"], a: 0 },
+        { q: "สารอาหารใดที่ร่างกายขาดไม่ได้เลย แม้จะไม่ได้จัดอยู่ใน 5 หมู่?", c: ["ชาและกาแฟ", "ขนมหวาน", "น้ำเปล่า", "น้ำอัดลม"], a: 2 },
+        { q: "ข้อใดคือสัดส่วนการทานอาหารที่ดี (Plate Model)?", c: ["แป้งครึ่ง เนื้อครึ่ง", "ผัก 2 ส่วน แป้ง 1 เนื้อ 1", "เนื้อสัตว์เต็มจาน", "ผลไม้ครึ่ง ไขมันครึ่ง"], a: 1 },
+        { q: "อาหารแช่แข็งมักมีสิ่งใดสูงเกินไป?", c: ["วิตามิน", "โซเดียม (ความเค็ม)", "ไฟเบอร์", "น้ำตาลกลูโคส"], a: 1 },
+        { q: "เมื่อรู้สึกอ่อนเพลีย ร่างกายต้องการสารอาหารหมู่ใดเพื่อดึงมาใช้ด่วน?", c: ["คาร์โบไฮเดรต", "โปรตีน", "วิตามิน", "แร่ธาตุ"], a: 0 },
+        { q: "ถั่วลิสงและอัลมอนด์ ให้สารอาหารหลักในหมู่ใด?", c: ["คาร์โบไฮเดรต", "โปรตีนและไขมันดี", "วิตามินซี", "แคลเซียม"], a: 1 },
+        { q: "คนที่เป็นเบาหวาน ควรควบคุมอาหารหมู่ใดอย่างเคร่งครัด?", c: ["หมู่ 1 (โปรตีน)", "หมู่ 3 (ผัก)", "หมู่ 2 (คาร์บ/น้ำตาล)", "หมู่ 5 (ไขมัน)"], a: 2 },
+        { q: "ไอโอดีน ช่วยป้องกันโรคคอพอก พบมากในไหน?", c: ["อาหารทะเล", "ผลไม้รสเปรี้ยว", "ผักกาดขาว", "เนื้อวัว"], a: 0 },
+        { q: "การทานอาหารรสเค็มจัด ส่งผลเสียต่ออวัยวะใดมากที่สุด?", c: ["ปอด", "หัวใจ", "ไต", "ตับ"], a: 2 },
+        { q: "ข้อใดคือพฤติกรรมการกินที่ถูกต้อง?", c: ["งดแป้งเด็ดขาด", "ทานอาหารครบ 5 หมู่พอดี", "กินผักแทนข้าว", "กินขนมแทนข้าวเย็น"], a: 1 },
+        { q: "เด็กที่ฟันผุบ่อย มักเกิดจากการรับประทานสิ่งใดมากเกินไป?", c: ["น้ำตาล", "โปรตีน", "ไขมัน", "แคลเซียม"], a: 0 },
+        { q: "มื้อเช้าที่ดี ควรประกอบด้วยอาหารหมู่ใดบ้าง?", c: ["เฉพาะคาร์โบไฮเดรต", "ครบทั้ง 5 หมู่", "เฉพาะโปรตีน", "เฉพาะไขมัน"], a: 1 }
+    ];
+
+    const bonusEvents = [
+        { t: "กินอาหารครบ 5 หมู่ มื้อเที่ยง", p: 3 }, { t: "ดื่มน้ำครบ 8 แก้ววันนี้", p: 2 }, 
+        { t: "พักผ่อนเต็มอิ่ม 8 ชม.", p: 2 }, { t: "เลือกทานผลไม้แทนขนม", p: 1 },
+        { t: "ดื่มนมจืดบำรุงกระดูก", p: 2 }, { t: "เคี้ยวอาหารละเอียด", p: 1 }
+    ];
+    const cards = [
+        "โปรตีนช่วยซ่อมแซมร่างกาย ควรทานไข่หรือเนื้อสัตว์ไขมันต่ำ",
+        "คาร์โบไฮเดรตเชิงซ้อน เช่น ข้าวกล้อง ให้อิ่มนาน",
+        "ผักหลากสีให้วิตามินต่างกัน ควรทานให้ครบ 5 สี",
+        "ผลไม้รสหวานจัด ควรทานในปริมาณที่จำกัด",
+        "ไขมันดีพบได้ใน อัลมอนด์ อะโวคาโด บำรุงหัวใจ",
+        "รสเค็มจัด ทำให้ไตทำงานหนัก"
+    ];
+    const missions = [
+        "กระโดดตบ 10 ครั้ง", "วิ่งอยู่กับที่ 10 วินาที", "Squat 5 ครั้ง", "ยืดเหยียดแตะสลับเท้า 10 ครั้ง"
+    ];
+    const luckys = [
+        { t: "ทางลัด! เดินหน้า 3 ช่อง", a: "move", v: 3 },
+        { t: "สุขภาพเยี่ยม! รับฟรี 5 คะแนน!", a: "score", v: 5 },
+        { t: "พลังเต็ม! ทอยเต๋าอีกครั้ง", a: "roll", v: 0 }
+    ];
+    const penalties = [
+        { t: "กินหวานมากเกินไป", p: -2 }, { t: "นอนดึกตื่นสาย", p: -1 },
+        { t: "ไม่ออกกำลังกาย", p: -2 }, { t: "ดื่มน้ำไม่พอ", p: -1 }
+    ];
+
+    // โหลดช่องกรอกชื่อผู้เล่น
+    function updatePlayerInputs() {
+        const countElement = document.getElementById('player-count');
+        const count = countElement ? parseInt(countElement.value) : 2;
+        const container = document.getElementById('player-inputs');
+        
+        if (container) {
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <div class="player-input">
+                        <input type="color" id="p-color-${i}" value="${colors[i % colors.length]}">
+                        <input type="text" id="p-name-${i}" placeholder="ชื่อผู้เล่น ${i+1}" value="ผู้เล่น ${i+1}">
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // แก้ไขให้เริ่มเกมได้เสมอ แม้ว่ากล่องกรอกชื่อจะหายไป
+    function startGame() {
+        initAudio();
+        
+        const countElement = document.getElementById('player-count');
+        const count = countElement ? parseInt(countElement.value) : 2; // ถ้าไม่มีช่องเลือกคน ให้ตั้งเป็น 2 คน
+        
+        players = [];
+        for(let i=0; i<count; i++) {
+            // เช็คว่ามีช่องกรอกชื่อ/สี หรือไม่ ถ้าไม่มีให้ใช้ค่าเริ่มต้น ป้องกัน Error
+            const nameInput = document.getElementById(`p-name-${i}`);
+            const colorInput = document.getElementById(`p-color-${i}`);
+            
+            players.push({
+                id: i,
+                name: (nameInput && nameInput.value) ? nameInput.value : `ผู้เล่น ${i+1}`,
+                color: (colorInput && colorInput.value) ? colorInput.value : colors[i % colors.length],
+                score: 0,
+                pos: 0
+            });
+        }
+        
+        // สลับหน้าจอไปที่หน้ากระดานเกม
+        const setupScreen = document.getElementById('setup-screen');
+        if (setupScreen) setupScreen.style.display = 'none';
+        
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) gameScreen.style.display = 'flex';
+        
+        generateBoard();
+        updateScoreboard();
+        drawPieces(); 
+        
+        currentPlayerIndex = 0;
+        updateTurnDisplay();
+        isBusy = false;
+        
+        const btnRoll = document.getElementById('btn-roll');
+        if (btnRoll) btnRoll.disabled = false;
+        
+        const diceEl = document.getElementById('dice');
+        if (diceEl) {
+            diceEl.classList.remove('rolling');
+            diceEl.innerText = '🎲';
+        }
+    }
+
+    // สั่งให้วาดกล่องชื่อตอนโหลดหน้าเว็บ
+    window.onload = function() {
+        updatePlayerInputs();
+    };
+
+    const COLS = 10;
+    function getGridCoord(index) {
+        let row = Math.floor(index / COLS);
+        let col = index % COLS;
+        if (row % 2 !== 0) { col = COLS - 1 - col; }
+        return { r: row + 1, c: col + 1 };
+    }
+
+    function generateBoard() {
+        let types = [];
+        for(let i=0; i<80; i++) types.push('Q');
+        for(let i=0; i<20; i++) types.push('B');
+        for(let i=0; i<20; i++) types.push('C');
+        for(let i=0; i<15; i++) types.push('M');
+        for(let i=0; i<5; i++) types.push('L');
+        for(let i=0; i<8; i++) types.push('P');
+
+        for (let i = types.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [types[i], types[j]] = [types[j], types[i]];
+        }
+
+        boardCells = [{ type: 'START', icon: '🏁', label: 'START' }];
+        for(let i=0; i<148; i++) {
+            let t = types[i];
+            let icon, label;
+            if(t==='Q') { icon = '🧑‍🏫'; label = 'คำถาม'; }
+            if(t==='B') { icon = '💖'; label = 'โบนัส'; }
+            if(t==='C') { icon = '📚'; label = 'ความรู้'; }
+            if(t==='M') { icon = '🤸'; label = 'ภารกิจ'; }
+            if(t==='L') { icon = '🎁'; label = 'โชคดี'; }
+            if(t==='P') { icon = '🤒'; label = 'ลบแต้ม'; }
+            boardCells.push({ type: t, icon, label });
+        }
+        boardCells.push({ type: 'FINISH', icon: '🏆', label: 'FINISH' });
+
+        const boardEl = document.getElementById('board');
+        if (!boardEl) return;
+        boardEl.innerHTML = ''; 
+
+        boardCells.forEach((cell, i) => {
+            const coord = getGridCoord(i);
+            const div = document.createElement('div');
+            div.className = `cell type-${cell.type}`;
+            if(i===0) div.classList.add('start');
+            if(i===TOTAL_SQUARES - 1) div.classList.add('finish');
+            div.style.gridRow = coord.r;
+            div.style.gridColumn = coord.c;
+            
+            div.innerHTML = `
+                <div class="cell-num">${i}</div>
+                <div class="cell-pic">${cell.icon}</div>
+                <div style="line-height:1;">${cell.label}</div>
+            `;
+            div.id = `cell-${i}`;
+            boardEl.appendChild(div);
+        });
+    }
+
+    function updateScoreboard() {
+        const list = document.getElementById('players-list');
+        if(!list) return;
+        list.innerHTML = '';
+        players.forEach((p, i) => {
+            const div = document.createElement('div');
+            div.className = `player-score ${i === currentPlayerIndex ? 'active-player-score' : ''}`;
+            div.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <span class="color-dot" style="background:${p.color}"></span>
+                    <b>${p.name}</b> <span style="font-size:11px; margin-left:5px;">(ช่อง ${p.pos})</span>
+                </div>
+                <div style="font-weight:bold; color:#FFD54F; font-size:16px;">${p.score}</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function updateTurnDisplay() {
+        const p = players[currentPlayerIndex];
+        const display = document.getElementById('current-turn-display');
+        if(display) display.innerHTML = `ตาของ:<br><span style="color:${p.color}; font-size:22px; text-shadow:1px 1px 0 #fff, -1px -1px 0 #fff;">${p.name}</span>`;
+        updateScoreboard();
+    }
+
+    function drawPieces() {
+        document.querySelectorAll('.piece').forEach(e => e.remove());
+        players.forEach((p, pIdx) => {
+            const cellEl = document.getElementById(`cell-${p.pos}`);
+            if(cellEl) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.style.color = p.color; 
+                const offset = [ [-6,-6], [6,-6], [-6,6], [6,6] ][pIdx];
+                piece.style.transform = `translate(${offset[0]}px, ${offset[1] - 10}px)`; 
+                cellEl.appendChild(piece);
+            }
+        });
+    }
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    async function rollDice() {
+        if(isBusy) return; 
+        isBusy = true;
+        const btn = document.getElementById('btn-roll');
+        if(btn) btn.disabled = true;
+        
+        try {
+            sounds.dice();
+            const diceEl = document.getElementById('dice');
+            if(diceEl) diceEl.classList.add('rolling');
+            
+            await sleep(400); 
+            const steps = Math.floor(Math.random() * 6) + 1; 
+            
+            if(diceEl) {
+                diceEl.classList.remove('rolling');
+                diceEl.innerText = ['⚀','⚁','⚂','⚃','⚄','⚅'][steps-1];
+            }
+            
+            await movePlayer(steps);
+        } catch(e) {
+            nextTurn(); 
+        }
+    }
+
+    async function movePlayer(steps) {
+        let p = players[currentPlayerIndex];
+        try {
+            for(let i=0; i<steps; i++) {
+                if(p.pos >= TOTAL_SQUARES - 1) break; 
+                p.pos++;
+                drawPieces(); 
+                updateScoreboard();
+                sounds.move();
+                await sleep(200); 
+            }
+            
+            if(p.pos >= TOTAL_SQUARES - 1) {
+                p.pos = TOTAL_SQUARES - 1;
+                drawPieces();
+                handleFinish(); 
+            } else {
+                triggerSquare(p.pos); 
+            }
+        } catch (e) {
+            nextTurn();
+        }
+    }
+
+    function changePoints(amount) {
+        let p = players[currentPlayerIndex];
+        p.score += amount;
+        if(p.score < 0) p.score = 0; 
+        updateScoreboard();
+        
+        const cellEl = document.getElementById(`cell-${p.pos}`);
+        if(cellEl) {
+            const fl = document.createElement('div');
+            fl.className = 'floating-text';
+            fl.style.color = amount >= 0 ? '#4CAF50' : '#f44336';
+            fl.innerText = amount >= 0 ? `+${amount}` : amount;
+            cellEl.appendChild(fl);
+            setTimeout(() => fl.remove(), 1000);
+        }
+    }
+
+    function nextTurn() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        updateTurnDisplay();
+        const btn = document.getElementById('btn-roll');
+        if(btn) btn.disabled = false;
+        const diceEl = document.getElementById('dice');
+        if(diceEl) diceEl.innerText = '🎲';
+        isBusy = false; 
+    }
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalBox = document.getElementById('modal-box');
+    const mIcon = document.getElementById('modal-icon');
+    const mTitle = document.getElementById('modal-title');
+    const mDesc = document.getElementById('modal-desc');
+    const mContent = document.getElementById('modal-dynamic-content');
+    const mBtnClose = document.getElementById('modal-btn-close');
+
+    function openModal(icon, title, desc, color) {
+        if(!mIcon || !mTitle || !mDesc || !mContent || !mBtnClose || !modalOverlay || !modalBox) return;
+        mIcon.innerText = icon;
+        mTitle.innerText = title;
+        mTitle.style.color = color || '#333';
+        mDesc.innerHTML = desc;
+        mContent.innerHTML = '';
+        mBtnClose.style.display = 'none';
+        modalOverlay.style.display = 'flex';
+        setTimeout(() => modalBox.classList.add('show'), 10);
+    }
+
+    function closeModal() {
+        if(!modalBox || !modalOverlay) return;
+        modalBox.classList.remove('show');
+        setTimeout(() => {
+            modalOverlay.style.display = 'none';
+            if(pendingAction === 'roll_again') {
+                isBusy = false;
+                const btn = document.getElementById('btn-roll');
+                if(btn) btn.disabled = false;
+                const diceEl = document.getElementById('dice');
+                if(diceEl) diceEl.innerText = '🎲';
+                pendingAction = null;
+            } else if (pendingAction === 'move_extra') {
+                let steps = pendingMoveSteps;
+                pendingAction = null;
+                pendingMoveSteps = 0;
+                movePlayer(steps); 
+            } else {
+                nextTurn(); 
+            }
+        }, 300);
+    }
+
+    let pendingAction = null;
+    let pendingMoveSteps = 0;
+
+    function triggerSquare(index) {
+        const cell = boardCells[index];
+        if(!cell || cell.type === 'START') { nextTurn(); return; }
+
+        if(cell.type === 'Q') {
+            let qIdx = Math.floor(Math.random() * questionPool.length);
+            let q = questionPool[qIdx];
+            openModal('🧑‍🏫', 'คำถามสุขภาพ', q.q, '#0288D1');
+            
+            let grid = document.createElement('div');
+            grid.className = 'choices-grid';
+            q.c.forEach((choice, i) => {
+                let btn = document.createElement('button');
+                btn.className = 'btn-choice';
+                btn.innerText = choice;
+                btn.onclick = () => {
+                    if(i === q.a) { 
+                        sounds.correct();
+                        changePoints(2);
+                        mDesc.innerHTML = `<span style="color:#2E7D32; font-weight:bold;">✅ ถูกต้อง!</span><br>รับ 2 คะแนน เดินหน้า 1 ช่อง`;
+                        grid.innerHTML = '';
+                        mBtnClose.style.display = 'block';
+                        mBtnClose.onclick = () => { pendingAction = 'move_extra'; pendingMoveSteps = 1; closeModal(); };
+                    } else { 
+                        sounds.wrong();
+                        mDesc.innerHTML = `<span style="color:#D32F2F; font-weight:bold;">❌ ผิดจ้า!</span><br>เฉลยคือ: <b>${q.c[q.a]}</b><br>รออยู่ที่เดิมนะ`;
+                        grid.innerHTML = '';
+                        mBtnClose.style.display = 'block';
+                        mBtnClose.onclick = closeModal;
+                    }
+                };
+                grid.appendChild(btn);
+            });
+            mContent.appendChild(grid);
+        }
+        else if(cell.type === 'B') {
+            let ev = bonusEvents[Math.floor(Math.random() * bonusEvents.length)];
+            sounds.bonus();
+            openModal('💖', 'โบนัสสุขภาพ', `${ev.t}<br><br><span style="font-size:20px; color:#F57F17; font-weight:bold;">รับ ${ev.p} คะแนน!</span>`, '#FBC02D');
+            changePoints(ev.p);
+            mBtnClose.style.display = 'block';
+            mBtnClose.onclick = closeModal;
+        }
+        else if(cell.type === 'C') {
+            let card = cards[Math.floor(Math.random() * cards.length)];
+            sounds.bonus();
+            openModal('📚', 'เกร็ดความรู้', card, '#7B1FA2');
+            mBtnClose.innerText = 'เข้าใจแล้ว';
+            mBtnClose.style.display = 'block';
+            mBtnClose.onclick = closeModal;
+        }
+        else if(cell.type === 'M') {
+            let mission = missions[Math.floor(Math.random() * missions.length)];
+            openModal('🤸', 'ภารกิจขยับร่างกาย', `ให้ผู้เล่นทำ:<br><br><span style="font-size:20px; color:#E64A19; font-weight:bold;">"${mission}"</span>`, '#388E3C');
+            let btnDone = document.createElement('button');
+            btnDone.className = 'btn-action';
+            btnDone.innerText = '💪 ทำสำเร็จ! รับ 2 คะแนน';
+            btnDone.onclick = () => { sounds.correct(); changePoints(2); closeModal(); };
+            mContent.appendChild(btnDone);
+        }
+        else if(cell.type === 'L') {
+            let luck = luckys[Math.floor(Math.random() * luckys.length)];
+            sounds.bonus();
+            openModal('🎁', 'โชคดีสุดๆ', `<span style="font-size:20px; color:#E65100;"><b>${luck.t}</b></span>`, '#FFA000');
+            if(luck.a === 'score') changePoints(luck.v);
+            mBtnClose.style.display = 'block';
+            mBtnClose.onclick = () => {
+                if(luck.a === 'roll') pendingAction = 'roll_again';
+                if(luck.a === 'move') { pendingAction = 'move_extra'; pendingMoveSteps = luck.v; }
+                closeModal();
+            };
+        }
+        else if(cell.type === 'P') {
+            let pen = penalties[Math.floor(Math.random() * penalties.length)];
+            sounds.penalty();
+            openModal('🤒', 'พฤติกรรมทำลายสุขภาพ', `${pen.t}<br><br><span style="font-size:20px; color:#B71C1C; font-weight:bold;">โดนหัก ${Math.abs(pen.p)} คะแนน</span>`, '#D32F2F');
+            changePoints(pen.p);
+            mBtnClose.style.display = 'block';
+            mBtnClose.onclick = closeModal;
+        } else {
+            nextTurn();
+        }
+    }
+
+    function handleFinish() {
+        sounds.win();
+        for(let i=0; i<60; i++) {
+            let conf = document.createElement('div');
+            conf.className = 'confetti';
+            conf.style.left = Math.random() * 100 + 'vw';
+            conf.style.backgroundColor = `hsl(${Math.random()*360}, 100%, 50%)`;
+            conf.style.animationDuration = (Math.random() * 3 + 2) + 's';
+            document.body.appendChild(conf);
+        }
+        let maxScore = -1; let winners = [];
+        players.forEach(p => { if(p.score > maxScore) { maxScore = p.score; winners = [p]; } else if(p.score === maxScore) { winners.push(p); } });
+        let winnerNames = winners.map(w => w.name).join(' และ ');
+        openModal('🏆', 'เข้าเส้นชัยแล้ว!', `ผู้ชนะคือ:<br><span style="font-size:26px; color:#F57F17;"><b>${winnerNames}</b></span><br>คะแนนสุขภาพ: <b>${maxScore}</b> คะแนน!`, '#F57F17');
+        let resetBtn = document.createElement('button');
+        resetBtn.className = 'btn-action'; resetBtn.style.marginTop = '15px'; resetBtn.innerText = '🔄 เล่นอีกครั้ง';
+        resetBtn.onclick = () => location.reload(); 
+        mContent.appendChild(resetBtn);
+    }
+</script>
+
+</body>
+</html>
